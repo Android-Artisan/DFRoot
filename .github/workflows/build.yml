@@ -1,11 +1,16 @@
 name: Build
 
-on:
+"on":
 push:
-branches: [master, main]
-tags: ['v*']
+branches:
+- master
+- main
+tags:
+- "v*"
 pull_request:
-branches: [master, main]
+branches:
+- master
+- main
 workflow_dispatch:
 
 permissions:
@@ -14,24 +19,23 @@ actions: read
 
 jobs:
 build-lkms:
-name: LKMs / ${{ matrix.kmi }}
+name: "LKMs / ${{ matrix.kmi }}"
 runs-on: ubuntu-latest
-
 strategy:
-  fail-fast: false
-  matrix:
-    kmi:
-      - android12-5.10
-      - android13-5.10
-      - android13-5.15
-      - android14-5.15
-      - android14-6.1
-      - android15-6.6
-      - android16-6.12
-      - android17-6.18
+fail-fast: false
+matrix:
+kmi:
+- android12-5.10
+- android13-5.10
+- android13-5.15
+- android14-5.15
+- android14-6.1
+- android15-6.6
+- android16-6.12
+- android17-6.18
 
 container:
-  image: ghcr.io/ylarod/ddk-min:${{ matrix.kmi }}-20260828
+  image: "ghcr.io/ylarod/ddk-min:${{ matrix.kmi }}-20260828"
   options: --privileged
 
 steps:
@@ -42,7 +46,6 @@ steps:
     shell: bash
     run: |
       set -euo pipefail
-
       cd lkm
       make -j"$(nproc)"
 
@@ -65,14 +68,13 @@ steps:
 
       mkdir -p "$GITHUB_WORKSPACE/out"
       cp dfroot.ko "$GITHUB_WORKSPACE/out/dfroot-${{ matrix.kmi }}.ko"
-
       make clean
 
   - name: Upload LKM
     uses: actions/upload-artifact@v7
     with:
-      name: df-lkm-${{ matrix.kmi }}
-      path: out/dfroot-${{ matrix.kmi }}.ko
+      name: "df-lkm-${{ matrix.kmi }}"
+      path: "out/dfroot-${{ matrix.kmi }}.ko"
       if-no-files-found: error
       retention-days: 14
 
@@ -95,15 +97,11 @@ steps:
       KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
     run: |
       set -euo pipefail
-
       mkdir -p keys
 
-      if [[ -n "$KEYSTORE" && \
-            -n "$KEYSTORE_PASSWORD" && \
-            -n "$KEY_ALIAS" && \
-            -n "$KEY_PASSWORD" ]]; then
-
-        echo "$KEYSTORE" | base64 --decode > keystore.jks
+      if [[ -n "$KEYSTORE" && -n "$KEYSTORE_PASSWORD" && \
+            -n "$KEY_ALIAS" && -n "$KEY_PASSWORD" ]]; then
+        printf '%s' "$KEYSTORE" | base64 --decode > keystore.jks
 
         {
           echo "KEYSTORE_FILE=../keystore.jks"
@@ -115,7 +113,6 @@ steps:
         echo "Using configured release signing key."
 
       elif [[ -f keys/testkey.jks ]]; then
-
         {
           echo "KEYSTORE_FILE=../keys/testkey.jks"
           echo "KEYSTORE_PASSWORD=android"
@@ -126,8 +123,8 @@ steps:
         echo "::warning::Using generic test signing key."
 
       else
-        echo "::error::No release signing secrets or fallback keystore found."
-        echo "::error::Provide all four signing secrets or add keys/testkey.jks."
+        echo "::error::No signing key found."
+        echo "Configure all four signing secrets or add keys/testkey.jks."
         exit 1
       fi
 
@@ -163,7 +160,7 @@ steps:
     uses: actions/setup-java@v6
     with:
       distribution: temurin
-      java-version: '21'
+      java-version: "21"
 
   - name: Set up Gradle
     uses: gradle/actions/setup-gradle@v6
@@ -179,7 +176,7 @@ steps:
   - name: Upload DFRoot APK
     uses: actions/upload-artifact@v7
     with:
-      name: DFRoot-${{ github.event_name == 'pull_request' && 'debug' || 'release' }}
+      name: DFRoot
       path: |
         app/build/outputs/apk/release/DFRoot_*.apk
         app/build/outputs/apk/debug/DFRoot_*.apk
